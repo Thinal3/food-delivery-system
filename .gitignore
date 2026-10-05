@@ -1,0 +1,5 @@
+
+# Local credentials and installed dependencies
+auth-service/.env
+auth-service/node_modules/
+auth-service/npm-debug.log*
