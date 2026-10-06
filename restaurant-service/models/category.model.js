@@ -1,0 +1,3 @@
+const CATEGORY_NAME_MAX_LENGTH = 80;
+
+module.exports = { CATEGORY_NAME_MAX_LENGTH };

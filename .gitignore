@@ -3,3 +3,6 @@
 auth-service/.env
 auth-service/node_modules/
 auth-service/npm-debug.log*
+restaurant-service/.env
+restaurant-service/node_modules/
+restaurant-service/npm-debug.log*

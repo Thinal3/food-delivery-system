@@ -1,0 +1,4 @@
+const RESTAURANT_STATUSES = Object.freeze(['ACTIVE', 'INACTIVE']);
+const OPERATING_STATUSES = Object.freeze(['OPEN', 'CLOSED']);
+
+module.exports = { RESTAURANT_STATUSES, OPERATING_STATUSES };
