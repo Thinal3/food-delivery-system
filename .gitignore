@@ -1,5 +1,8 @@
 
 # Local credentials and installed dependencies
+/.env
+/.env.*
+!/.env.example
 auth-service/.env
 auth-service/node_modules/
 auth-service/npm-debug.log*
@@ -15,3 +18,6 @@ customer-service/npm-debug.log*
 delivery-service/.env
 delivery-service/node_modules/
 delivery-service/npm-debug.log*
+
+# Docker's persistent MariaDB data (the Compose named volume is normally managed by Docker)
+docker/mariadb/data/

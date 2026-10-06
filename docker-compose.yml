@@ -1,0 +1,185 @@
+name: food-delivery-system
+
+services:
+  mariadb:
+    image: mariadb:11.4.5
+    container_name: food-delivery-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD in the root .env file}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in the root .env file}
+      RESTAURANT_DB_PASSWORD: ${RESTAURANT_DB_PASSWORD:?Set RESTAURANT_DB_PASSWORD in the root .env file}
+      ORDER_DB_PASSWORD: ${ORDER_DB_PASSWORD:?Set ORDER_DB_PASSWORD in the root .env file}
+      DELIVERY_DB_PASSWORD: ${DELIVERY_DB_PASSWORD:?Set DELIVERY_DB_PASSWORD in the root .env file}
+      CUSTOMER_DB_PASSWORD: ${CUSTOMER_DB_PASSWORD:?Set CUSTOMER_DB_PASSWORD in the root .env file}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./docker/mariadb/init/00-create-app-users.sh:/docker-entrypoint-initdb.d/00-create-app-users.sh:ro
+      - ./auth-service/database/schema.sql:/docker-entrypoint-initdb.d/10-auth-schema.sql:ro
+      - ./restaurant-service/database/schema.sql:/docker-entrypoint-initdb.d/20-restaurant-schema.sql:ro
+      - ./order-service/database/schema.sql:/docker-entrypoint-initdb.d/30-order-schema.sql:ro
+      - ./delivery-service/database/schema.sql:/docker-entrypoint-initdb.d/40-delivery-schema.sql:ro
+      - ./customer-service/database/schema.sql:/docker-entrypoint-initdb.d/50-customer-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -uroot -p\"$$MARIADB_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    networks: [food_delivery_private]
+
+  auth-service:
+    build: ./auth-service
+    image: food-delivery-auth-service:local
+    restart: unless-stopped
+    environment:
+      PORT: 5001
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USER: food_auth_app
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in the root .env file}
+      DB_NAME: food_delivery_auth
+      DB_CONNECTION_LIMIT: ${DB_CONNECTION_LIMIT:-10}
+      DB_STARTUP_MAX_ATTEMPTS: ${DB_STARTUP_MAX_ATTEMPTS:-30}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the root .env file}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_ISSUER: ${JWT_ISSUER:-food-delivery-auth}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-food-delivery-services}
+    ports: ["5001:5001"]
+    depends_on:
+      mariadb: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5001/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    networks: [food_delivery_private]
+
+  restaurant-service:
+    build: ./restaurant-service
+    image: food-delivery-restaurant-service:local
+    restart: unless-stopped
+    environment:
+      PORT: 5002
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USER: food_restaurant_app
+      DB_PASSWORD: ${RESTAURANT_DB_PASSWORD:?Set RESTAURANT_DB_PASSWORD in the root .env file}
+      DB_NAME: food_delivery_restaurant
+      DB_CONNECTION_LIMIT: ${DB_CONNECTION_LIMIT:-10}
+      DB_STARTUP_MAX_ATTEMPTS: ${DB_STARTUP_MAX_ATTEMPTS:-30}
+      AUTH_SERVICE_URL: http://auth-service:5001
+      AUTH_REQUEST_TIMEOUT_MS: ${AUTH_REQUEST_TIMEOUT_MS:-5000}
+    ports: ["5002:5002"]
+    depends_on:
+      mariadb: { condition: service_healthy }
+      auth-service: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5002/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    networks: [food_delivery_private]
+
+  customer-service:
+    build: ./customer-service
+    image: food-delivery-customer-service:local
+    restart: unless-stopped
+    environment:
+      PORT: 5005
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USER: food_customer_app
+      DB_PASSWORD: ${CUSTOMER_DB_PASSWORD:?Set CUSTOMER_DB_PASSWORD in the root .env file}
+      DB_NAME: food_delivery_customer
+      DB_CONNECTION_LIMIT: ${DB_CONNECTION_LIMIT:-10}
+      DB_STARTUP_MAX_ATTEMPTS: ${DB_STARTUP_MAX_ATTEMPTS:-30}
+      AUTH_SERVICE_URL: http://auth-service:5001
+      SERVICE_REQUEST_TIMEOUT_MS: ${SERVICE_REQUEST_TIMEOUT_MS:-5000}
+    ports: ["5005:5005"]
+    depends_on:
+      mariadb: { condition: service_healthy }
+      auth-service: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5005/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    networks: [food_delivery_private]
+
+  order-service:
+    build: ./order-service
+    image: food-delivery-order-service:local
+    restart: unless-stopped
+    environment:
+      PORT: 5003
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USER: food_order_app
+      DB_PASSWORD: ${ORDER_DB_PASSWORD:?Set ORDER_DB_PASSWORD in the root .env file}
+      DB_NAME: food_delivery_order
+      DB_CONNECTION_LIMIT: ${DB_CONNECTION_LIMIT:-10}
+      DB_STARTUP_MAX_ATTEMPTS: ${DB_STARTUP_MAX_ATTEMPTS:-30}
+      AUTH_SERVICE_URL: http://auth-service:5001
+      RESTAURANT_SERVICE_URL: http://restaurant-service:5002
+      CUSTOMER_SERVICE_URL: http://customer-service:5005
+      DELIVERY_SERVICE_URL: http://delivery-service:5004
+      SERVICE_REQUEST_TIMEOUT_MS: ${SERVICE_REQUEST_TIMEOUT_MS:-5000}
+      DELIVERY_FEE: ${DELIVERY_FEE:-250.00}
+      ORDER_DELIVERY_SYNC_SECRET: ${ORDER_DELIVERY_SYNC_SECRET:?Set ORDER_DELIVERY_SYNC_SECRET in the root .env file}
+    ports: ["5003:5003"]
+    depends_on:
+      mariadb: { condition: service_healthy }
+      auth-service: { condition: service_healthy }
+      restaurant-service: { condition: service_healthy }
+      customer-service: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5003/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    networks: [food_delivery_private]
+
+  delivery-service:
+    build: ./delivery-service
+    image: food-delivery-delivery-service:local
+    restart: unless-stopped
+    environment:
+      PORT: 5004
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USER: food_delivery_app
+      DB_PASSWORD: ${DELIVERY_DB_PASSWORD:?Set DELIVERY_DB_PASSWORD in the root .env file}
+      DB_NAME: food_delivery_delivery
+      DB_CONNECTION_LIMIT: ${DB_CONNECTION_LIMIT:-10}
+      DB_STARTUP_MAX_ATTEMPTS: ${DB_STARTUP_MAX_ATTEMPTS:-30}
+      AUTH_SERVICE_URL: http://auth-service:5001
+      ORDER_SERVICE_URL: http://order-service:5003
+      RESTAURANT_SERVICE_URL: http://restaurant-service:5002
+      SERVICE_REQUEST_TIMEOUT_MS: ${SERVICE_REQUEST_TIMEOUT_MS:-5000}
+      ORDER_DELIVERY_SYNC_SECRET: ${ORDER_DELIVERY_SYNC_SECRET:?Set ORDER_DELIVERY_SYNC_SECRET in the root .env file}
+      SYNC_POLL_INTERVAL_MS: ${SYNC_POLL_INTERVAL_MS:-1000}
+      SYNC_MAX_ATTEMPTS: ${SYNC_MAX_ATTEMPTS:-8}
+    ports: ["5004:5004"]
+    depends_on:
+      mariadb: { condition: service_healthy }
+      auth-service: { condition: service_healthy }
+      restaurant-service: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5004/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    networks: [food_delivery_private]
+
+networks:
+  food_delivery_private:
+    driver: bridge
+
+volumes:
+  mariadb_data:
