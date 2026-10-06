@@ -1,0 +1,4 @@
+const MAX_QUANTITY = 99;
+const MAX_ITEMS_PER_ORDER = 20;
+
+module.exports = { MAX_QUANTITY, MAX_ITEMS_PER_ORDER };

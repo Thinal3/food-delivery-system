@@ -1,0 +1,22 @@
+{
+  "name": "food-delivery-order-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Order management service for the food delivery system",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "check": "node --check server.js && node --check app.js",
+    "test": "node --test",
+    "test:db": "node --test test/order.database.test.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "mysql2": "^3.14.3",
+    "zod": "^4.1.12"
+  }
+}
