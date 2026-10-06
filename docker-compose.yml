@@ -15,11 +15,11 @@ services:
     volumes:
       - mariadb_data:/var/lib/mysql
       - ./docker/mariadb/init/00-create-app-users.sh:/docker-entrypoint-initdb.d/00-create-app-users.sh:ro
-      - ./auth-service/database/schema.sql:/docker-entrypoint-initdb.d/10-auth-schema.sql:ro
-      - ./restaurant-service/database/schema.sql:/docker-entrypoint-initdb.d/20-restaurant-schema.sql:ro
-      - ./order-service/database/schema.sql:/docker-entrypoint-initdb.d/30-order-schema.sql:ro
-      - ./delivery-service/database/schema.sql:/docker-entrypoint-initdb.d/40-delivery-schema.sql:ro
-      - ./customer-service/database/schema.sql:/docker-entrypoint-initdb.d/50-customer-schema.sql:ro
+      - ./services/auth-service/database/schema.sql:/docker-entrypoint-initdb.d/10-auth-schema.sql:ro
+      - ./services/restaurant-service/database/schema.sql:/docker-entrypoint-initdb.d/20-restaurant-schema.sql:ro
+      - ./services/order-service/database/schema.sql:/docker-entrypoint-initdb.d/30-order-schema.sql:ro
+      - ./services/delivery-service/database/schema.sql:/docker-entrypoint-initdb.d/40-delivery-schema.sql:ro
+      - ./services/customer-service/database/schema.sql:/docker-entrypoint-initdb.d/50-customer-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -uroot -p\"$$MARIADB_ROOT_PASSWORD\" --silent"]
       interval: 5s
@@ -29,7 +29,7 @@ services:
     networks: [food_delivery_private]
 
   auth-service:
-    build: ./auth-service
+    build: ./services/auth-service
     image: food-delivery-auth-service:local
     restart: unless-stopped
     environment:
@@ -57,7 +57,7 @@ services:
     networks: [food_delivery_private]
 
   restaurant-service:
-    build: ./restaurant-service
+    build: ./services/restaurant-service
     image: food-delivery-restaurant-service:local
     restart: unless-stopped
     environment:
@@ -84,7 +84,7 @@ services:
     networks: [food_delivery_private]
 
   customer-service:
-    build: ./customer-service
+    build: ./services/customer-service
     image: food-delivery-customer-service:local
     restart: unless-stopped
     environment:
@@ -111,7 +111,7 @@ services:
     networks: [food_delivery_private]
 
   order-service:
-    build: ./order-service
+    build: ./services/order-service
     image: food-delivery-order-service:local
     restart: unless-stopped
     environment:
@@ -145,7 +145,7 @@ services:
     networks: [food_delivery_private]
 
   delivery-service:
-    build: ./delivery-service
+    build: ./services/delivery-service
     image: food-delivery-delivery-service:local
     restart: unless-stopped
     environment:

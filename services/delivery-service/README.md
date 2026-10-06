@@ -17,7 +17,7 @@ Delivery assigns delivery people to eligible orders, stores immutable pickup/dro
 Start XAMPP MariaDB at `127.0.0.1:3307`. From the repository root, execute the schema using the XAMPP client (change the path if needed):
 
 ```powershell
-Get-Content -Raw .\delivery-service\database\schema.sql | & 'C:\xampp\mysql\bin\mysql.exe' --host=127.0.0.1 --port=3307 --user=root --password
+Get-Content -Raw .\services\delivery-service\database\schema.sql | & 'C:\xampp\mysql\bin\mysql.exe' --host=127.0.0.1 --port=3307 --user=root --password
 ```
 
 Enter the local MariaDB administrator password when prompted. If local root has no password, omit `--password`. The script only creates missing objects; it never drops/reset data.
@@ -37,7 +37,7 @@ In `delivery-service`, create `.env` and install/run:
 Copy-Item .env.example .env
 ```
 
-Set `DB_PASSWORD` to the chosen database-user password. Generate one random secret of at least 32 characters for `ORDER_DELIVERY_SYNC_SECRET` and put the same value in `order-service/.env`. Do not put that secret in source or chat; both `.env` files are ignored by Git.
+Set `DB_PASSWORD` to the chosen database-user password. Generate one random secret of at least 32 characters for `ORDER_DELIVERY_SYNC_SECRET` and put the same value in `services/order-service/.env`. Do not put that secret in source or chat; both `.env` files are ignored by Git.
 
 ```powershell
 npm ci

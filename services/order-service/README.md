@@ -5,7 +5,7 @@ Order stores food-order history and snapshots the data needed to preserve what t
 ## Structure
 
 ```text
-order-service/
+services/order-service/
   config/       environment and MariaDB connection pool
   controllers/  HTTP handlers
   database/     production and isolated test schemas
@@ -32,7 +32,7 @@ order-service/
 Start XAMPP MariaDB on `127.0.0.1:3307`. From the repository root, execute the schema using the XAMPP client (adjust the path if XAMPP is installed elsewhere):
 
 ```powershell
-Get-Content -Raw .\order-service\database\schema.sql | & 'C:\xampp\mysql\bin\mysql.exe' --host=127.0.0.1 --port=3307 --user=root --password
+Get-Content -Raw .\services\order-service\database\schema.sql | & 'C:\xampp\mysql\bin\mysql.exe' --host=127.0.0.1 --port=3307 --user=root --password
 ```
 
 The client prompts for the MariaDB administrator password. If the local root account has no password, omit `--password`. The schema is non-destructive: it creates the database/tables only when absent and never drops data.
@@ -109,7 +109,7 @@ Customer implements the protected profile and address endpoints below. Order for
 }
 ```
 
-Order checks `customer_id` against the resolved Customer profile before snapshotting the address. It never invents a profile ID or substitutes the Auth ID. Start Customer on port `5005` after configuring its own MariaDB database using `customer-service/README.md`.
+Order checks `customer_id` against the resolved Customer profile before snapshotting the address. It never invents a profile ID or substitutes the Auth ID. Start Customer on port `5005` after configuring its own MariaDB database using `services/customer-service/README.md`.
 
 ### Restaurant
 
@@ -162,7 +162,7 @@ Each request advances exactly one edge; no backwards jumps or cancellation after
 
 Set a Postman environment variable `orderBaseUrl=http://localhost:5003`. Use Postman Desktop/Desktop Agent for `localhost`, and set `Content-Type: application/json` on JSON requests.
 
-1. Bootstrap/login the ADMIN using `auth-service/README.md`. Log in with `POST http://localhost:5001/api/auth/login`, body `{"email":"admin@example.com","password":"your-password"}`, and copy the response `token`.
+1. Bootstrap/login the ADMIN using `services/auth-service/README.md`. Log in with `POST http://localhost:5001/api/auth/login`, body `{"email":"admin@example.com","password":"your-password"}`, and copy the response `token`.
 2. With the ADMIN bearer token, create a restaurant admin using `POST http://localhost:5001/api/auth/users`, body `{"name":"Restaurant Manager","email":"manager@example.com","password":"another-strong-password","role":"RESTAURANT_ADMIN","status":"ACTIVE"}`. Log in as that account to get the restaurant-owner token.
 3. Use the Auth ADMIN token to create an active CUSTOMER through the same Auth admin-users endpoint, then log in as the customer and copy its token.
 4. Start Customer, create the profile and address with the customer token using the Customer Postman steps, then save the returned address ID as `deliveryAddressId`.

@@ -16,7 +16,7 @@ Restaurant owns restaurant profiles, categories, and menu data. It uses a separa
 ## Folder Structure
 
 ```text
-restaurant-service/
+services/restaurant-service/
   config/       environment and MariaDB pool
   controllers/  restaurant, category, and menu HTTP handlers
   database/     production schema and isolated test schema
@@ -35,10 +35,10 @@ restaurant-service/
 
 ## Local Setup: XAMPP MariaDB
 
-Start MySQL/MariaDB in the XAMPP control panel. The examples below use `127.0.0.1:3307` as requested. From the repository root, execute `restaurant-service/database/schema.sql` with the XAMPP client. If XAMPP is installed elsewhere, replace the executable path:
+Start MySQL/MariaDB in the XAMPP control panel. The examples below use `127.0.0.1:3307` as requested. From the repository root, execute `services/restaurant-service/database/schema.sql` with the XAMPP client. If XAMPP is installed elsewhere, replace the executable path:
 
 ```powershell
-Get-Content -Raw .\restaurant-service\database\schema.sql | & 'C:\xampp\mysql\bin\mysql.exe' --host=127.0.0.1 --port=3307 --user=root --password
+Get-Content -Raw .\services\restaurant-service\database\schema.sql | & 'C:\xampp\mysql\bin\mysql.exe' --host=127.0.0.1 --port=3307 --user=root --password
 ```
 
 The MariaDB client prompts for the local administrator password. The schema only creates the database and tables if absent; it does not drop or reset data. If your XAMPP root account has no password, omit `--password`.
@@ -121,7 +121,7 @@ In Postman Desktop or Desktop Agent, set `baseUrl` to `http://localhost:5002`. E
 
 ### Obtain a restaurant-admin token
 
-First use the Auth service's one-time admin bootstrap as described in `auth-service/README.md`, then log in as that ADMIN:
+First use the Auth service's one-time admin bootstrap as described in `services/auth-service/README.md`, then log in as that ADMIN:
 
 - Method: `POST`
 - URL: `http://localhost:5001/api/auth/login`

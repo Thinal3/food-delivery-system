@@ -3,21 +3,9 @@
 /.env
 /.env.*
 !/.env.example
-auth-service/.env
-auth-service/node_modules/
-auth-service/npm-debug.log*
-restaurant-service/.env
-restaurant-service/node_modules/
-restaurant-service/npm-debug.log*
-order-service/.env
-order-service/node_modules/
-order-service/npm-debug.log*
-customer-service/.env
-customer-service/node_modules/
-customer-service/npm-debug.log*
-delivery-service/.env
-delivery-service/node_modules/
-delivery-service/npm-debug.log*
+services/*/.env
+services/*/node_modules/
+services/*/npm-debug.log*
 
 # Docker's persistent MariaDB data (the Compose named volume is normally managed by Docker)
 docker/mariadb/data/

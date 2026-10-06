@@ -15,7 +15,7 @@ The demo will use short-lived access tokens only. Refresh tokens, social login, 
 ## Stage 2: Structure and Dependencies
 
 ```text
-auth-service/
+services/auth-service/
   config/       environment and MySQL pool configuration
   controllers/  HTTP request/response handlers
   database/     SQL schema

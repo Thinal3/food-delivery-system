@@ -14,7 +14,7 @@ Customer owns customer profile records and delivery addresses. It verifies Auth 
 ## Files
 
 ```text
-customer-service/
+services/customer-service/
   config/       validated environment and MariaDB pool
   controllers/  customer and address HTTP handlers
   database/     production schema and isolated test schema
@@ -32,7 +32,7 @@ customer-service/
 Start XAMPP MariaDB on `127.0.0.1:3307`. From the repository root, run the non-destructive schema with the XAMPP MariaDB client (adjust the executable path if needed):
 
 ```powershell
-Get-Content -Raw .\customer-service\database\schema.sql | & 'C:\xampp\mysql\bin\mysql.exe' --host=127.0.0.1 --port=3307 --user=root --password
+Get-Content -Raw .\services\customer-service\database\schema.sql | & 'C:\xampp\mysql\bin\mysql.exe' --host=127.0.0.1 --port=3307 --user=root --password
 ```
 
 Enter the local administrator password when prompted. If the local root login has no password, omit `--password`. The script uses `CREATE ... IF NOT EXISTS`; it does not drop or reset existing data.
