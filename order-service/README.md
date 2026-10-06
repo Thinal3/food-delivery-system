@@ -74,9 +74,9 @@ GET http://localhost:5003/ready
 
 Every protected request forwards the caller's exact `Authorization: Bearer <token>` to `GET {AUTH_SERVICE_URL}/api/auth/verify`. The expected response is `{ "user": { "id": 42, "role": "CUSTOMER", "status": "ACTIVE" } }`. Only Auth supplies trusted identity. Invalid/missing tokens yield `401`; Auth outage or timeout yields `503`.
 
-### Customer: required contract, service not present yet
+### Customer
 
-The current `customer-service/` directory is empty. Order therefore includes a client contract and fixture tests but cannot create a real order until Customer implements these protected endpoints:
+Customer implements the protected profile and address endpoints below. Order forwards the caller token and requires the Customer profile ID and Auth user ID as separate values:
 
 `GET /api/customers/me` with the forwarded caller token returns:
 
@@ -97,7 +97,9 @@ The current `customer-service/` directory is empty. Order therefore includes a c
   "address": {
     "id": 22,
     "customer_id": 901,
+    "address_line1": "10 Main Street",
     "line1": "10 Main Street",
+    "address_line2": null,
     "line2": null,
     "city": "Sample City",
     "region": "CA",
@@ -107,7 +109,7 @@ The current `customer-service/` directory is empty. Order therefore includes a c
 }
 ```
 
-Order checks `customer_id` against the resolved Customer profile before snapshotting the address. Until Customer serves this contract, order creation safely returns `503`; it never invents a profile ID or substitutes the Auth ID.
+Order checks `customer_id` against the resolved Customer profile before snapshotting the address. It never invents a profile ID or substitutes the Auth ID. Start Customer on port `5005` after configuring its own MariaDB database using `customer-service/README.md`.
 
 ### Restaurant
 
@@ -160,9 +162,9 @@ Set a Postman environment variable `orderBaseUrl=http://localhost:5003`. Use Pos
 
 1. Bootstrap/login the ADMIN using `auth-service/README.md`. Log in with `POST http://localhost:5001/api/auth/login`, body `{"email":"admin@example.com","password":"your-password"}`, and copy the response `token`.
 2. With the ADMIN bearer token, create a restaurant admin using `POST http://localhost:5001/api/auth/users`, body `{"name":"Restaurant Manager","email":"manager@example.com","password":"another-strong-password","role":"RESTAURANT_ADMIN","status":"ACTIVE"}`. Log in as that account to get the restaurant-owner token.
-3. Use the Auth ADMIN token to create an active CUSTOMER through the same Auth admin-users endpoint, then log in as the customer and copy its token. Order creation requires the corresponding Customer profile and address APIs described above; until Customer exists, expect `503` from `POST /api/orders`.
-
-Once Customer is implemented, create an order:
+3. Use the Auth ADMIN token to create an active CUSTOMER through the same Auth admin-users endpoint, then log in as the customer and copy its token.
+4. Start Customer, create the profile and address with the customer token using the Customer Postman steps, then save the returned address ID as `deliveryAddressId`.
+5. Start Order and Restaurant, ensure the restaurant is ACTIVE/OPEN with available menu items, and create an order:
 
 - Method: `POST`
 - URL: `{{orderBaseUrl}}/api/orders`

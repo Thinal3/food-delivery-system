@@ -9,3 +9,6 @@ restaurant-service/npm-debug.log*
 order-service/.env
 order-service/node_modules/
 order-service/npm-debug.log*
+customer-service/.env
+customer-service/node_modules/
+customer-service/npm-debug.log*

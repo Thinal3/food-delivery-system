@@ -1,0 +1,3 @@
+const ADDRESS_NAME_MAX_LENGTH = 60;
+
+module.exports = { ADDRESS_NAME_MAX_LENGTH };
