@@ -152,6 +152,15 @@ async function changeStatus(identity, authorization, orderId, nextStatus) {
     throw new AppError(403, 'Customers cannot update order status.');
   }
 
+  if (['PICKED_UP', 'ON_THE_WAY', 'DELIVERED'].includes(nextStatus)) {
+    const persistedDelivery = await deliveryClient.getPersistedStatus(orderId);
+    if (persistedDelivery.status !== nextStatus
+      || (identity.role === 'DELIVERY_PERSON'
+        && Number(persistedDelivery.delivery_person_id) !== identity.userId)) {
+      throw new AppError(409, 'Delivery must persist this status and assignment before Order can synchronize it.');
+    }
+  }
+
   if (!(await orders.transitionIfCurrent(orderId, current, nextStatus))) {
     throw new AppError(409, 'Order changed concurrently; reload it before trying again.');
   }
@@ -185,4 +194,26 @@ async function cancel(identity, authorization, orderId) {
   return orders.findById(orderId);
 }
 
-module.exports = { create, listMine, listRestaurant, listAll, getVisible, changeStatus, cancel };
+async function syncDeliveryStatus({ orderId, deliveryId, status }) {
+  if (!['PICKED_UP', 'ON_THE_WAY', 'DELIVERED'].includes(status)) {
+    throw new AppError(400, 'Only delivery progress statuses can synchronize to Order.');
+  }
+  const delivery = await deliveryClient.getPersistedStatus(orderId, deliveryId);
+  if (delivery.status !== status) {
+    throw new AppError(409, 'Delivery status does not match the persisted Delivery record.');
+  }
+  const order = await orders.findById(orderId);
+  if (!order) throw new AppError(404, 'Order not found.');
+  if (order.status === status) return order;
+  if (!TRANSITIONS[order.status]?.includes(status)) {
+    throw new AppError(409, 'Order cannot make this delivery status transition.');
+  }
+  if (!(await orders.transitionIfCurrent(orderId, order.status, status))) {
+    const current = await orders.findById(orderId);
+    if (current?.status === status) return current;
+    throw new AppError(409, 'Order changed concurrently during Delivery synchronization.');
+  }
+  return orders.findById(orderId);
+}
+
+module.exports = { create, listMine, listRestaurant, listAll, getVisible, changeStatus, cancel, syncDeliveryStatus };

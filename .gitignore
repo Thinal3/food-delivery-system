@@ -12,3 +12,6 @@ order-service/npm-debug.log*
 customer-service/.env
 customer-service/node_modules/
 customer-service/npm-debug.log*
+delivery-service/.env
+delivery-service/node_modules/
+delivery-service/npm-debug.log*

@@ -117,9 +117,11 @@ Order uses `GET /api/restaurants/:restaurantId` and expects `{ "restaurant": { "
 
 Restaurant admins are authorized by fetching the current Restaurant record with their forwarded token and comparing `owner_user_id` to the Auth identity. A client-supplied restaurant ID or stored owner snapshot is not sufficient authorization.
 
-### Delivery: not implemented yet
+### Delivery
 
-Delivery-person order reads/updates require the future protected endpoint `GET {DELIVERY_SERVICE_URL}/api/deliveries/me/orders/:orderId/assignment`, returning `{ "assignment": { "order_id": 123, "delivery_person_user_id": 11, "status": "ACTIVE" } }`. Until Delivery implements and confirms that assignment, the service does not grant delivery users access. Never trust a custom role/assignment header.
+Delivery-person order reads/updates use `GET {DELIVERY_SERVICE_URL}/api/deliveries/me/orders/:orderId/assignment` with the caller's Auth bearer token. It returns `{ "assignment": { "delivery_id": 4, "order_id": 123, "delivery_person_user_id": 11, "status": "ACTIVE" } }`. Before accepting PICKED_UP, ON_THE_WAY, or DELIVERED from a user-token route, Order checks persisted Delivery state at `GET /api/deliveries/internal/orders/:orderId/status`.
+
+Delivery's outbox worker calls `POST /api/orders/internal/delivery-sync` using `ORDER_DELIVERY_SYNC_SECRET`, a separate random service credential also configured in Delivery. Order verifies that Delivery has persisted the exact status before applying it. The internal Delivery status endpoint only reads its local database and does not call Order, preventing recursive service calls. Never trust custom role/assignment headers.
 
 ## API and Permissions
 

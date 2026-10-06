@@ -4,11 +4,15 @@ const authenticate = require('../middleware/authenticate');
 const authorizeRoles = require('../middleware/authorize-roles');
 const validateRequest = require('../middleware/validate-request');
 const schemas = require('../middleware/request-schemas');
+const deliverySyncAuth = require('../middleware/delivery-sync-auth');
 
 const router = express.Router();
 
 router.post('/', authenticate, authorizeRoles('CUSTOMER'),
   validateRequest({ body: schemas.createOrder }), controller.create);
+
+router.post('/internal/delivery-sync', deliverySyncAuth,
+  validateRequest({ body: schemas.deliverySync }), controller.deliverySync);
 
 // Keep fixed collection routes ahead of /:orderId.
 router.get('/mine', authenticate, validateRequest({ query: schemas.list }), controller.mine);

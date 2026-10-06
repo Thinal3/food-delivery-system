@@ -24,4 +24,9 @@ module.exports = {
     .refine(Number.isSafeInteger, 'must be a safe positive integer') }).strict(),
   orderId: idParam,
   updateStatus: z.object({ status: z.enum(ORDER_STATUSES) }).strict(),
+  deliverySync: z.object({
+    orderId: positiveId,
+    deliveryId: positiveId,
+    status: z.enum(['PICKED_UP', 'ON_THE_WAY', 'DELIVERED']),
+  }).strict(),
 };

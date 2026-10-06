@@ -3,7 +3,7 @@ dotenv.config();
 
 function required(name, fallback) {
   const value = process.env[name]?.trim() || fallback;
-  if (!value || /replace-with-your-own-password/i.test(value)) {
+  if (!value || /replace-with/i.test(value)) {
     throw new Error(`${name} must be set to a real value.`);
   }
   return value;
@@ -20,35 +20,28 @@ function serviceUrl(name, fallback) {
   try {
     const parsed = new URL(value);
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error();
-  } catch {
-    throw new Error(`${name} must be a valid HTTP or HTTPS URL.`);
-  }
+  } catch { throw new Error(`${name} must be a valid HTTP or HTTPS URL.`); }
   return value;
 }
 
-const fee = required('DELIVERY_FEE', '250.00');
-if (!/^(?:0|[1-9]\d{0,7})(?:\.\d{1,2})?$/.test(fee)) {
-  throw new Error('DELIVERY_FEE must be a non-negative decimal with at most 2 decimal places.');
-}
-const orderDeliverySyncSecret = process.env.ORDER_DELIVERY_SYNC_SECRET?.trim() || null;
-if (orderDeliverySyncSecret && (/replace-with/i.test(orderDeliverySyncSecret) || orderDeliverySyncSecret.length < 32)) {
-  throw new Error('ORDER_DELIVERY_SYNC_SECRET must be at least 32 characters when configured.');
-}
+const syncSecret = required('ORDER_DELIVERY_SYNC_SECRET');
+if (syncSecret.length < 32) throw new Error('ORDER_DELIVERY_SYNC_SECRET must be at least 32 characters.');
+
 module.exports = Object.freeze({
-  port: positiveInteger('PORT', 5003),
+  port: positiveInteger('PORT', 5004),
   authServiceUrl: serviceUrl('AUTH_SERVICE_URL', 'http://localhost:5001'),
+  orderServiceUrl: serviceUrl('ORDER_SERVICE_URL', 'http://localhost:5003'),
   restaurantServiceUrl: serviceUrl('RESTAURANT_SERVICE_URL', 'http://localhost:5002'),
-  customerServiceUrl: serviceUrl('CUSTOMER_SERVICE_URL', 'http://localhost:5005'),
-  deliveryServiceUrl: serviceUrl('DELIVERY_SERVICE_URL', 'http://localhost:5004'),
   serviceRequestTimeoutMs: positiveInteger('SERVICE_REQUEST_TIMEOUT_MS', 5000),
-  deliveryFee: fee,
-  orderDeliverySyncSecret,
+  orderDeliverySyncSecret: syncSecret,
+  syncPollIntervalMs: positiveInteger('SYNC_POLL_INTERVAL_MS', 1000),
+  syncMaxAttempts: positiveInteger('SYNC_MAX_ATTEMPTS', 8),
   database: {
     host: required('DB_HOST', '127.0.0.1'),
     port: positiveInteger('DB_PORT', 3306),
     user: required('DB_USER'),
     password: required('DB_PASSWORD'),
-    database: required('DB_NAME', 'food_delivery_order'),
+    database: required('DB_NAME', 'food_delivery_delivery'),
     waitForConnections: true,
     connectionLimit: positiveInteger('DB_CONNECTION_LIMIT', 10),
     queueLimit: 0,

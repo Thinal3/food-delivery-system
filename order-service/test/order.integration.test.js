@@ -5,6 +5,7 @@ process.env.DB_PASSWORD ||= 'fixture-only';
 process.env.DB_NAME ||= 'order_fixture_test';
 process.env.SERVICE_REQUEST_TIMEOUT_MS = '80';
 process.env.DELIVERY_FEE = '2.50';
+process.env.ORDER_DELIVERY_SYNC_SECRET = 'fixture-order-delivery-sync-secret-at-least-32';
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -25,6 +26,7 @@ let shouldFailItems;
 let restaurantState;
 let menu;
 let assignments;
+let deliveryStates;
 const originalMethods = {};
 
 const identities = {
@@ -141,6 +143,14 @@ test.before(async () => {
     if (req.url === '/api/auth/verify') {
       return identities[token] ? send(res, 200, { user: identities[token] }) : send(res, 401, { error: 'invalid token' });
     }
+    const internalDeliveryMatch = req.url.match(/^\/api\/deliveries\/internal\/orders\/(\d+)\/status$/);
+    if (internalDeliveryMatch) {
+      if (req.headers.authorization !== `Bearer ${process.env.ORDER_DELIVERY_SYNC_SECRET}`) {
+        return send(res, 401, { error: 'service auth required' });
+      }
+      const delivery = deliveryStates.get(Number(internalDeliveryMatch[1]));
+      return delivery ? send(res, 200, { delivery }) : send(res, 404, { error: 'not found' });
+    }
     if (req.url === '/api/customers/me') {
       return token === 'customer'
         ? send(res, 200, { customer: { id: 901, user_id: 42, status: 'ACTIVE' } })
@@ -202,6 +212,7 @@ test.beforeEach(() => {
     [201, { id: 201, restaurant_id: 6, name: 'Other menu', price: '1.00', availability: true }],
   ]);
   assignments = new Map();
+  deliveryStates = new Map();
   dbOrders = new Map();
   dbItems = [];
   nextId = 1;
@@ -297,11 +308,12 @@ test('restaurant lifecycle requires one transition per request; Delivery checks 
     assert.equal((await request(`/api/orders/${order.id}/status`, { method: 'PATCH', token: 'owner', body: { status } })).status, 200);
   }
   assert.equal((await request(`/api/orders/${order.id}/status`, { method: 'PATCH', token: 'otherDriver', body: { status: 'PICKED_UP' } })).status, 403);
-  assignments.set(order.id, { order_id: order.id, delivery_person_user_id: 11, status: 'ACTIVE' });
+  assignments.set(order.id, { delivery_id: 801, order_id: order.id, delivery_person_user_id: 11, status: 'ACTIVE' });
   dependencyMode = 'down';
   assert.equal((await request(`/api/orders/${order.id}`, { token: 'driver' })).status, 503);
   dependencyMode = 'ready';
   for (const status of ['PICKED_UP', 'ON_THE_WAY', 'DELIVERED']) {
+    deliveryStates.set(order.id, { id: 801, order_id: order.id, delivery_person_id: 11, status });
     assert.equal((await request(`/api/orders/${order.id}/status`, { method: 'PATCH', token: 'driver', body: { status } })).status, 200);
   }
   assert.equal((await request(`/api/orders/${order.id}/status`, { method: 'PATCH', token: 'admin', body: { status: 'CANCELLED' } })).status, 409);
@@ -345,4 +357,29 @@ test('upstream failure and timeout fail closed before any order is written', asy
 
 test('history status filter rejects values outside the lifecycle', async () => {
   assert.equal((await request('/api/orders/mine?status=UNKNOWN', { token: 'customer' })).status, 400);
+});
+
+test('Delivery sync is service-authenticated, checks persisted Delivery state, and is idempotent', async () => {
+  const order = await createOrder();
+  for (const status of ['CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP']) {
+    await repo.transitionIfCurrent(order.id, dbOrders.get(order.id).status, status);
+  }
+  const path = '/api/orders/internal/delivery-sync';
+  const body = { orderId: order.id, deliveryId: 801, status: 'PICKED_UP' };
+  assert.equal((await request(path, { method: 'POST', body })).status, 401);
+  assert.equal((await request(path, {
+    method: 'POST', token: process.env.ORDER_DELIVERY_SYNC_SECRET, body,
+  })).status, 409);
+
+  deliveryStates.set(order.id, { id: 801, order_id: order.id, delivery_person_id: 11, status: 'PICKED_UP' });
+  const synchronized = await request(path, {
+    method: 'POST', token: process.env.ORDER_DELIVERY_SYNC_SECRET, body,
+  });
+  assert.equal(synchronized.status, 200);
+  assert.equal(synchronized.body.order.status, 'PICKED_UP');
+  const replay = await request(path, {
+    method: 'POST', token: process.env.ORDER_DELIVERY_SYNC_SECRET, body,
+  });
+  assert.equal(replay.status, 200);
+  assert.equal(replay.body.order.status, 'PICKED_UP');
 });

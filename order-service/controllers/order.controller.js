@@ -48,4 +48,11 @@ async function cancel(req, res, next) {
   } catch (error) { return next(error); }
 }
 
-module.exports = { create, mine, restaurant, all, get, updateStatus, cancel };
+async function deliverySync(req, res, next) {
+  try {
+    const order = await service.syncDeliveryStatus(req.validated.body);
+    return res.status(200).json({ order });
+  } catch (error) { return next(error); }
+}
+
+module.exports = { create, mine, restaurant, all, get, updateStatus, cancel, deliverySync };
